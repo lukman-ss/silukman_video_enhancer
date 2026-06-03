@@ -67,10 +67,13 @@ source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
 # Upgrade pip (required for pyproject.toml editable installs)
 pip install --upgrade pip
 
-# Install dependencies (use --no-compile to bypass PySide6 installation syntax compilation errors)
+# Option 1: Install directly from PyPI (recommended)
+pip install silukman-video-enhancer
+
+# Option 2: Install in development/editable mode from source
 pip install --no-compile -r requirements.txt -e ".[onnx,dev]"
 
-# Optional: install a wheel downloaded from the tagged GitHub Release assets
+# Option 3: Install a wheel downloaded from the tagged GitHub Release assets
 pip install silukman_video_enhancer-*.whl
 ```
 
