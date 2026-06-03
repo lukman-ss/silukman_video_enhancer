@@ -118,7 +118,7 @@ python -m ui.desktop
 
 ### Desktop Interface
 
-![silukman_video_enhancer Desktop UI](docs/assets/desktop-ui-screenshot.png)
+![silukman_video_enhancer Desktop UI (macOS)](docs/assets/desktop-ui-screenshot-mac.png)
 
 ---
 
