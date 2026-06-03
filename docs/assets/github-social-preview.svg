@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title desc">
+  <title id="title">silukman_video_enhancer social preview</title>
+  <desc id="desc">A repository social preview for a local-first offline video enhancement app.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#101820"/>
+      <stop offset="0.62" stop-color="#1f3648"/>
+      <stop offset="1" stop-color="#0f766e"/>
+    </linearGradient>
+    <linearGradient id="frame" x1="0" x2="1">
+      <stop offset="0" stop-color="#38bdf8"/>
+      <stop offset="1" stop-color="#a7f3d0"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="640" fill="url(#bg)"/>
+  <rect x="76" y="82" width="424" height="284" rx="24" fill="#0b1220" opacity="0.72"/>
+  <rect x="106" y="112" width="364" height="224" rx="18" fill="#182536"/>
+  <path d="M146 298 L220 210 L290 260 L354 174 L430 298 Z" fill="#253f59"/>
+  <circle cx="178" cy="154" r="34" fill="#fbbf24"/>
+  <rect x="86" y="414" width="408" height="42" rx="21" fill="#0b1220" opacity="0.55"/>
+  <rect x="108" y="428" width="132" height="14" rx="7" fill="#38bdf8"/>
+  <rect x="262" y="428" width="178" height="14" rx="7" fill="#a7f3d0" opacity="0.9"/>
+  <rect x="555" y="104" width="58" height="348" rx="8" fill="url(#frame)" opacity="0.95"/>
+  <rect x="642" y="104" width="58" height="348" rx="8" fill="url(#frame)" opacity="0.82"/>
+  <rect x="729" y="104" width="58" height="348" rx="8" fill="url(#frame)" opacity="0.68"/>
+  <text x="840" y="216" fill="#f8fafc" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="72" font-weight="800">silukman</text>
+  <text x="840" y="294" fill="#dff7f4" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="58" font-weight="700">video enhancer</text>
+  <text x="840" y="358" fill="#cbd5e1" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="30">Local-first offline AI video upscaling</text>
+  <text x="840" y="410" fill="#99f6e4" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="26">FFmpeg • ONNX Runtime • PySide6</text>
+</svg>

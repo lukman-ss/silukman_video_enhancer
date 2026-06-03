@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "silukman-video-enhancer"
+version = "0.2.0"
+description = "Local-first offline video enhancement CLI and Python desktop app."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [
+    { name = "silukman_video_enhancer contributors" }
+]
+dependencies = [
+    "PySide6>=6.7",
+]
+
+[project.optional-dependencies]
+onnx = [
+    "numpy>=1.24",
+    "onnxruntime>=1.17",
+]
+dev = [
+    "black>=24.0",
+    "flake8>=7.0",
+]
+
+[project.scripts]
+silukman-video-enhancer = "app.cli:main"
+silukman-video-enhancer-desktop = "ui.desktop:main"
+
+[tool.setuptools.packages.find]
+include = ["app*", "inference*", "models*", "pipeline*", "ui*", "utils*"]
+
+[tool.black]
+line-length = 88
+target-version = ["py39"]

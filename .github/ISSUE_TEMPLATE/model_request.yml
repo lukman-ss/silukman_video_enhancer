@@ -1,0 +1,34 @@
+name: Model request
+description: Request support for a restoration, upscaling, interpolation, or enhancement model.
+title: "[Model]: "
+labels:
+  - model-request
+body:
+  - type: input
+    id: model_name
+    attributes:
+      label: Model name
+      placeholder: Real-ESRGAN, SwinIR, RIFE, CodeFormer, etc.
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Official source or paper
+      placeholder: URL to repository, paper, or model card
+    validations:
+      required: true
+  - type: textarea
+    id: formats
+    attributes:
+      label: Available formats
+      description: ONNX, PyTorch, TensorRT, CoreML, model size, opset, license.
+    validations:
+      required: true
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Video use case
+      description: What footage or artifact should this model improve?
+    validations:
+      required: true

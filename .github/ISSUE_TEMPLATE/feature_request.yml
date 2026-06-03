@@ -1,0 +1,38 @@
+name: Feature request
+description: Suggest a new local-first video enhancement capability.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or workflow
+      description: What user workflow should this improve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the behavior, UI, CLI, or API shape you want.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Pipeline
+        - Desktop UI
+        - Headless API
+        - Packaging
+        - Models
+        - Documentation
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints
+      description: Offline requirements, hardware limits, model size, privacy, or compatibility concerns.

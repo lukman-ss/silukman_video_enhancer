@@ -1,0 +1,140 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+.env
+
+# Distribution / packaging
+*.whl
+*.tar.gz
+MANIFEST
+
+# PyInstaller
+*.spec
+*.manifest
+
+# Unit test / coverage
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.cache/
+nosetests.xml
+coverage.xml
+*.cover
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IDEs and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*.bak
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+*.dmg
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+*.lnk
+
+# Linux
+*~
+
+# AI/ML model binaries
+*.onnx
+*.pt
+*.pth
+*.pb
+*.ckpt
+*.safetensors
+*.bin
+*.h5
+*.tflite
+*.mlmodel
+*.mlpackage
+
+# LUT files (large user assets)
+*.cube
+
+# Video and media files
+*.mp4
+*.mkv
+*.avi
+*.mov
+*.wmv
+*.flv
+*.webm
+*.m2ts
+*.ts
+
+# Temporary / runtime files
+*.log
+*.tmp
+*.bak
+tmp/
+temp/
+.tmp/
+
+# Local config / secrets
+*.env
+.env.*
+secrets.*
+config.local.*
+local_settings.py
+
+# FFmpeg static binaries (auto-downloaded)
+bin/ffmpeg
+bin/ffprobe
+bin/ffmpeg.exe
+bin/ffprobe.exe
+bin/__MACOSX/
+
+# Model cache (user-downloaded, not part of source)
+models/cache/
+models/custom/
+
+# Checkpoint / resume files
+*.checkpoint
+*.ckpt.zst
+*.ckpt.lz4
+checkpoints/
+
+# Report outputs
+reports/
+
+# Render workspace / temp frames
+workspace/
+render_tmp/
+
+# Egg info (generated)
+*.egg-info/

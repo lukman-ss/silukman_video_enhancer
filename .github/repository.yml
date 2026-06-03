@@ -1,0 +1,20 @@
+repository:
+  name: silukman_video_enhancer
+  description: Local-first offline video enhancement CLI and Python desktop app.
+  homepage: https://github.com/lukman-ss/silukman_video_enhancer
+  private: false
+  has_issues: true
+  has_projects: true
+  has_wiki: false
+  has_discussions: true
+  default_branch: main
+  topics:
+    - video-enhancement
+    - upscaling
+    - onnx
+    - ffmpeg
+    - pyside6
+    - ai
+    - python
+    - offline-first
+    - desktop-app

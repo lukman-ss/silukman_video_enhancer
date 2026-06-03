@@ -1,0 +1,388 @@
+name: Release Installers
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  windows-installer:
+    name: Windows signed installer
+    runs-on: windows-latest
+    env:
+      APP_NAME: silukman-video-enhancer
+      PYTHON_VERSION: "3.11"
+      WINDOWS_SIGNING_ENABLED: ${{ secrets.WINDOWS_SIGNING_CERTIFICATE_BASE64 != '' && secrets.WINDOWS_SIGNING_PASSWORD != '' }}
+      WINDOWS_SIGNING_REQUIRED: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Cache virtual environment and PyInstaller build
+        uses: actions/cache@v4
+        with:
+          path: |
+            .venv
+            build
+            ~/.cache/pip
+          key: windows-release-${{ runner.os }}-${{ env.PYTHON_VERSION }}-${{ hashFiles('pyproject.toml', 'requirements.txt') }}
+          restore-keys: |
+            windows-release-${{ runner.os }}-${{ env.PYTHON_VERSION }}-
+
+      - name: Install build dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --no-compile -e .[onnx]
+          python -m pip install pyinstaller
+          choco install ffmpeg -y --no-progress
+
+      - name: Validate Windows signing secrets
+        if: ${{ env.WINDOWS_SIGNING_REQUIRED == 'true' && env.WINDOWS_SIGNING_ENABLED != 'true' }}
+        shell: pwsh
+        run: |
+          Write-Error "Tagged Windows releases require WINDOWS_SIGNING_CERTIFICATE_BASE64 and WINDOWS_SIGNING_PASSWORD secrets."
+
+      - name: Discover bundled runtime paths
+        shell: pwsh
+        run: |
+          $qtRuntime = python -c "import pathlib, PySide6; print(pathlib.Path(PySide6.__file__).parent)"
+          $onnxRuntime = python -c "import onnxruntime, pathlib; print(pathlib.Path(onnxruntime.__file__).parent)"
+          "QT_RUNTIME_DIR=$qtRuntime" >> $env:GITHUB_ENV
+          "ONNX_RUNTIME_DIR=$onnxRuntime" >> $env:GITHUB_ENV
+          "FFMPEG_BINARY=C:\ProgramData\chocolatey\bin\ffmpeg.exe" >> $env:GITHUB_ENV
+
+      - name: Build one-file CLI executable
+        shell: pwsh
+        run: |
+          pyinstaller --clean --onefile --name $env:APP_NAME --add-data "models;models" --add-binary "$env:FFMPEG_BINARY;bin" --add-binary "$env:ONNX_RUNTIME_DIR;onnxruntime" app/cli.py
+
+      - name: Build one-file desktop executable
+        shell: pwsh
+        run: |
+          pyinstaller --clean --onefile --name "$env:APP_NAME-desktop" --add-data "models;models" --add-binary "$env:FFMPEG_BINARY;bin" --add-binary "$env:ONNX_RUNTIME_DIR;onnxruntime" --add-data "$env:QT_RUNTIME_DIR;PySide6" ui/desktop.py
+
+      - name: Smoke test Windows CLI executable
+        shell: pwsh
+        run: |
+          & "dist\$env:APP_NAME.exe" --help
+          & "dist\$env:APP_NAME.exe" enhance -i smoke-input.mp4 -o smoke-output.mp4 --dry-run
+
+      - name: Sign Windows executables
+        if: ${{ env.WINDOWS_SIGNING_ENABLED == 'true' }}
+        shell: pwsh
+        run: |
+          $certPath = Join-Path $env:RUNNER_TEMP "windows-signing.pfx"
+          [Convert]::FromBase64String("${{ secrets.WINDOWS_SIGNING_CERTIFICATE_BASE64 }}") | Set-Content -Path $certPath -Encoding Byte
+          signtool sign /f $certPath /p "${{ secrets.WINDOWS_SIGNING_PASSWORD }}" /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 "dist\$env:APP_NAME.exe"
+          signtool sign /f $certPath /p "${{ secrets.WINDOWS_SIGNING_PASSWORD }}" /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 "dist\$env:APP_NAME-desktop.exe"
+
+      - name: Verify Windows signatures
+        if: ${{ env.WINDOWS_SIGNING_ENABLED == 'true' }}
+        shell: pwsh
+        run: |
+          $cliSignature = Get-AuthenticodeSignature "dist\$env:APP_NAME.exe"
+          $desktopSignature = Get-AuthenticodeSignature "dist\$env:APP_NAME-desktop.exe"
+          if ($cliSignature.Status -ne "Valid" -or $desktopSignature.Status -ne "Valid") {
+            Write-Error "Windows code signature verification failed."
+          }
+
+      - name: Prepare versioned Windows artifact names
+        shell: pwsh
+        run: |
+          $version = python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])"
+          if ($env:GITHUB_REF_TYPE -eq "tag") {
+            $tag = $env:GITHUB_REF_NAME
+          } else {
+            $tag = "v$version"
+          }
+          Copy-Item "dist\$env:APP_NAME.exe" "dist\$env:APP_NAME-$tag-windows-x64.exe"
+          Copy-Item "dist\$env:APP_NAME-desktop.exe" "dist\$env:APP_NAME-desktop-$tag-windows-x64.exe"
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-onefile-executables
+          path: |
+            dist/silukman-video-enhancer-v*-windows-x64.exe
+            dist/silukman-video-enhancer-desktop-v*-windows-x64.exe
+
+  macos-installer:
+    name: macOS notarized DMG
+    runs-on: macos-latest
+    env:
+      APP_NAME: silukman-video-enhancer
+      PYTHON_VERSION: "3.11"
+      MACOS_SIGNING_ENABLED: ${{ secrets.MACOS_SIGNING_CERTIFICATE_BASE64 != '' && secrets.MACOS_SIGNING_PASSWORD != '' && secrets.MACOS_DEVELOPER_ID_APPLICATION != '' }}
+      MACOS_NOTARIZATION_ENABLED: ${{ secrets.MACOS_NOTARY_APPLE_ID != '' && secrets.MACOS_NOTARY_PASSWORD != '' && secrets.MACOS_NOTARY_TEAM_ID != '' }}
+      MACOS_NOTARIZATION_REQUIRED: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Cache virtual environment and PyInstaller build
+        uses: actions/cache@v4
+        with:
+          path: |
+            .venv
+            build
+            ~/Library/Caches/pip
+          key: macos-release-${{ runner.os }}-${{ env.PYTHON_VERSION }}-${{ hashFiles('pyproject.toml', 'requirements.txt') }}
+          restore-keys: |
+            macos-release-${{ runner.os }}-${{ env.PYTHON_VERSION }}-
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --no-compile -e .[onnx]
+          python -m pip install pyinstaller
+          brew install ffmpeg
+
+      - name: Validate macOS signing and notarization secrets
+        if: ${{ env.MACOS_NOTARIZATION_REQUIRED == 'true' && (env.MACOS_SIGNING_ENABLED != 'true' || env.MACOS_NOTARIZATION_ENABLED != 'true') }}
+        run: |
+          echo "Tagged macOS releases require MACOS_SIGNING_CERTIFICATE_BASE64, MACOS_SIGNING_PASSWORD, MACOS_DEVELOPER_ID_APPLICATION, MACOS_NOTARY_APPLE_ID, MACOS_NOTARY_PASSWORD, and MACOS_NOTARY_TEAM_ID secrets." >&2
+          exit 1
+
+      - name: Discover bundled runtime paths
+        run: |
+          echo "QT_RUNTIME_DIR=$(python -c 'import pathlib, PySide6; print(pathlib.Path(PySide6.__file__).parent)')" >> "$GITHUB_ENV"
+          echo "ONNX_RUNTIME_DIR=$(python -c 'import onnxruntime, pathlib; print(pathlib.Path(onnxruntime.__file__).parent)')" >> "$GITHUB_ENV"
+          echo "FFMPEG_BINARY=$(brew --prefix ffmpeg)/bin/ffmpeg" >> "$GITHUB_ENV"
+
+      - name: Build one-file CLI executable
+        run: |
+          pyinstaller --clean --onefile --name "$APP_NAME" --add-data "models:models" --add-binary "$FFMPEG_BINARY:bin" --add-binary "$ONNX_RUNTIME_DIR:onnxruntime" app/cli.py
+
+      - name: Build one-file desktop executable
+        run: |
+          pyinstaller --clean --onefile --name "$APP_NAME-desktop" --add-data "models:models" --add-binary "$FFMPEG_BINARY:bin" --add-binary "$ONNX_RUNTIME_DIR:onnxruntime" --add-data "$QT_RUNTIME_DIR:PySide6" ui/desktop.py
+
+      - name: Smoke test macOS CLI executable
+        run: |
+          "dist/$APP_NAME" --help
+          "dist/$APP_NAME" enhance -i smoke-input.mp4 -o smoke-output.mp4 --dry-run
+
+      - name: Sign macOS executables
+        if: ${{ env.MACOS_SIGNING_ENABLED == 'true' }}
+        run: |
+          KEYCHAIN_PASSWORD="$(uuidgen)"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/signing.keychain-db"
+          security set-keychain-settings -lut 21600 "$RUNNER_TEMP/signing.keychain-db"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/signing.keychain-db"
+          echo "${{ secrets.MACOS_SIGNING_CERTIFICATE_BASE64 }}" | base64 --decode > "$RUNNER_TEMP/macos-signing.p12"
+          security import "$RUNNER_TEMP/macos-signing.p12" -P "${{ secrets.MACOS_SIGNING_PASSWORD }}" -A -t cert -f pkcs12 -k "$RUNNER_TEMP/signing.keychain-db"
+          security list-keychain -d user -s "$RUNNER_TEMP/signing.keychain-db"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/signing.keychain-db"
+          codesign --force --options runtime --timestamp --entitlements ".github/signing/macos-entitlements.plist" --sign "${{ secrets.MACOS_DEVELOPER_ID_APPLICATION }}" "dist/$APP_NAME"
+          codesign --force --options runtime --timestamp --entitlements ".github/signing/macos-entitlements.plist" --sign "${{ secrets.MACOS_DEVELOPER_ID_APPLICATION }}" "dist/$APP_NAME-desktop"
+          codesign --verify --strict --verbose=2 "dist/$APP_NAME"
+          codesign --verify --strict --verbose=2 "dist/$APP_NAME-desktop"
+
+      - name: Create DMG
+        run: |
+          VERSION="$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            RELEASE_TAG="$GITHUB_REF_NAME"
+          else
+            RELEASE_TAG="v$VERSION"
+          fi
+          mkdir -p "dist/dmg/$APP_NAME"
+          cp "dist/$APP_NAME" "dist/dmg/$APP_NAME/"
+          cp "dist/$APP_NAME-desktop" "dist/dmg/$APP_NAME/"
+          hdiutil create -volname "$APP_NAME" -srcfolder "dist/dmg/$APP_NAME" -ov -format UDZO "dist/$APP_NAME-$RELEASE_TAG-macos-arm64.dmg"
+
+      - name: Notarize DMG
+        if: ${{ env.MACOS_NOTARIZATION_ENABLED == 'true' }}
+        run: |
+          DMG_PATH="$(find dist -name "$APP_NAME-v*-macos-arm64.dmg" -print -quit)"
+          xcrun notarytool submit "$DMG_PATH" --apple-id "${{ secrets.MACOS_NOTARY_APPLE_ID }}" --password "${{ secrets.MACOS_NOTARY_PASSWORD }}" --team-id "${{ secrets.MACOS_NOTARY_TEAM_ID }}" --wait
+          xcrun stapler staple "$DMG_PATH"
+          spctl --assess --type open --context context:primary-signature --verbose "$DMG_PATH"
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-dmg
+          path: dist/silukman-video-enhancer-v*-macos-arm64.dmg
+
+  linux-installer:
+    name: Linux DEB and AppImage
+    runs-on: ubuntu-latest
+    env:
+      APP_NAME: silukman-video-enhancer
+      PYTHON_VERSION: "3.11"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Cache virtual environment and PyInstaller build
+        uses: actions/cache@v4
+        with:
+          path: |
+            .venv
+            build
+            ~/.cache/pip
+          key: linux-release-${{ runner.os }}-${{ env.PYTHON_VERSION }}-${{ hashFiles('pyproject.toml', 'requirements.txt') }}
+          restore-keys: |
+            linux-release-${{ runner.os }}-${{ env.PYTHON_VERSION }}-
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fuse libfuse2 desktop-file-utils
+          python -m pip install --upgrade pip
+          python -m pip install --no-compile -e .[onnx]
+          python -m pip install pyinstaller
+
+      - name: Discover bundled runtime paths
+        run: |
+          echo "QT_RUNTIME_DIR=$(python -c 'import pathlib, PySide6; print(pathlib.Path(PySide6.__file__).parent)')" >> "$GITHUB_ENV"
+          echo "ONNX_RUNTIME_DIR=$(python -c 'import onnxruntime, pathlib; print(pathlib.Path(onnxruntime.__file__).parent)')" >> "$GITHUB_ENV"
+          echo "FFMPEG_BINARY=$(command -v ffmpeg)" >> "$GITHUB_ENV"
+
+      - name: Build one-file CLI executable
+        run: |
+          pyinstaller --clean --onefile --name "$APP_NAME" --add-data "models:models" --add-binary "$FFMPEG_BINARY:bin" --add-binary "$ONNX_RUNTIME_DIR:onnxruntime" app/cli.py
+
+      - name: Build one-file desktop executable
+        run: |
+          pyinstaller --clean --onefile --name "$APP_NAME-desktop" --add-data "models:models" --add-binary "$FFMPEG_BINARY:bin" --add-binary "$ONNX_RUNTIME_DIR:onnxruntime" --add-data "$QT_RUNTIME_DIR:PySide6" ui/desktop.py
+
+      - name: Smoke test Linux CLI executable
+        run: |
+          "dist/$APP_NAME" --help
+          "dist/$APP_NAME" enhance -i smoke-input.mp4 -o smoke-output.mp4 --dry-run
+
+      - name: Build Debian package
+        run: |
+          PACKAGE_VERSION="$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            RELEASE_TAG="$GITHUB_REF_NAME"
+          else
+            RELEASE_TAG="v$PACKAGE_VERSION"
+          fi
+          mkdir -p "dist/deb/DEBIAN" "dist/deb/usr/local/bin"
+          cp "dist/$APP_NAME" "dist/deb/usr/local/bin/$APP_NAME"
+          cp "dist/$APP_NAME-desktop" "dist/deb/usr/local/bin/$APP_NAME-desktop"
+          cat > "dist/deb/DEBIAN/control" <<CONTROL
+          Package: silukman-video-enhancer
+          Version: $PACKAGE_VERSION
+          Section: video
+          Priority: optional
+          Architecture: amd64
+          Maintainer: silukman_video_enhancer contributors
+          Description: Local-first offline video enhancement CLI and desktop app.
+          CONTROL
+          dpkg-deb --build "dist/deb" "dist/$APP_NAME-$RELEASE_TAG-linux-x86_64.deb"
+
+      - name: Build AppImage
+        run: |
+          PACKAGE_VERSION="$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            RELEASE_TAG="$GITHUB_REF_NAME"
+          else
+            RELEASE_TAG="v$PACKAGE_VERSION"
+          fi
+          mkdir -p "dist/AppDir/usr/bin"
+          cp "dist/$APP_NAME" "dist/AppDir/usr/bin/$APP_NAME"
+          cp "dist/$APP_NAME-desktop" "dist/AppDir/usr/bin/$APP_NAME-desktop"
+          cat > "dist/AppDir/AppRun" <<'APPRUN'
+          #!/usr/bin/env sh
+          HERE="$(dirname "$(readlink -f "$0")")"
+          exec "$HERE/usr/bin/silukman-video-enhancer-desktop" "$@"
+          APPRUN
+          chmod +x "dist/AppDir/AppRun"
+          cat > "dist/AppDir/silukman-video-enhancer.desktop" <<'DESKTOP'
+          [Desktop Entry]
+          Type=Application
+          Name=silukman Video Enhancer
+          Exec=silukman-video-enhancer-desktop
+          Categories=AudioVideo;Video;
+          DESKTOP
+          curl -L -o appimagetool "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage"
+          chmod +x appimagetool
+          ./appimagetool "dist/AppDir" "dist/$APP_NAME-$RELEASE_TAG-linux-x86_64.AppImage"
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-installers
+          path: |
+            dist/silukman-video-enhancer-v*-linux-x86_64.deb
+            dist/silukman-video-enhancer-v*-linux-x86_64.AppImage
+
+  publish-draft-release:
+    name: Publish draft GitHub Release
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
+    needs:
+      - windows-installer
+      - macos-installer
+      - linux-installer
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Download release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+
+      - name: Build release notes from changelog
+        run: |
+          python - <<'PY' > release-notes.md
+          from pathlib import Path
+
+          tag = "${{ github.ref_name }}"
+          version = tag.removeprefix("v")
+          lines = Path("CHANGELOG.md").read_text(encoding="utf-8").splitlines()
+          start = None
+          for index, line in enumerate(lines):
+              if line.startswith(f"## [{version}]"):
+                  start = index
+                  break
+          if start is None:
+              print(f"# {tag}")
+              print()
+              print("No matching changelog entry was found.")
+              raise SystemExit
+          end = len(lines)
+          for index in range(start + 1, len(lines)):
+              if lines[index].startswith("## ["):
+                  end = index
+                  break
+          print("\n".join(lines[start:end]).strip())
+          PY
+
+      - name: Create draft GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --draft \
+            --title "${{ github.ref_name }}" \
+            --notes-file release-notes.md \
+            release-artifacts/**/*
