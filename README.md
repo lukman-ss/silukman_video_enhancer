@@ -1,5 +1,7 @@
 # silukman_video_enhancer
 
+![silukman_video_enhancer social preview](docs/assets/github-social-preview.svg)
+
 [![Project Status: Active](https://img.shields.io/badge/status-active-brightgreen.svg)](#roadmap)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Latest Release](https://img.shields.io/github/v/release/lukman-ss/silukman_video_enhancer?include_prereleases&label=release)](https://github.com/lukman-ss/silukman_video_enhancer/releases)
