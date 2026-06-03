@@ -70,8 +70,8 @@ pip install --upgrade pip
 # Install dependencies (use --no-compile to bypass PySide6 installation syntax compilation errors)
 pip install --no-compile -r requirements.txt -e ".[onnx,dev]"
 
-# Optional: install the package from GitHub Packages after a tagged release is published
-pip install --index-url https://pypi.pkg.github.com/lukman-ss silukman-video-enhancer
+# Optional: install a wheel downloaded from the tagged GitHub Release assets
+pip install silukman_video_enhancer-*.whl
 ```
 
 ---

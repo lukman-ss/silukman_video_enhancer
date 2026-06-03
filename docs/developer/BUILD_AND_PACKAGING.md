@@ -64,4 +64,4 @@ Phase 10 release automation publishes:
 
 * Draft GitHub Releases with notes extracted from `CHANGELOG.md`.
 * Installer artifacts from the Windows, macOS, and Linux release jobs.
-* Python source and wheel distributions through the GitHub Packages publish workflow.
+* Python source and wheel distributions as workflow artifacts and tagged release assets through the package publish workflow.

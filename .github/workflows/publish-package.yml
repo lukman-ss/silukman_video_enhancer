@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   packages: write
 
 jobs:
@@ -32,16 +32,21 @@ jobs:
       - name: Build source and wheel distributions
         run: python -m build
 
-      - name: Publish package to GitHub Packages
+      - name: Upload Python package artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package-dist
+          path: dist/*
+
+      - name: Attach Python package to GitHub Release
+        if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
         env:
-          TWINE_USERNAME: ${{ github.actor }}
-          TWINE_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          python -m twine upload \
-            --repository-url "https://pypi.pkg.github.com/lukman-ss/" \
-            --skip-existing \
-            dist/*
+          gh release view "${{ github.ref_name }}" >/dev/null 2>&1 || \
+            gh release create "${{ github.ref_name }}" --draft --title "${{ github.ref_name }}" --notes "Python package distributions for ${{ github.ref_name }}."
+          gh release upload "${{ github.ref_name }}" dist/* --clobber
 
       - name: Document GitHub Packages install command
         run: |
-          echo "pip install --index-url https://pypi.pkg.github.com/lukman-ss silukman-video-enhancer"
+          echo "Python source and wheel distributions are available as workflow artifacts and tagged release assets."

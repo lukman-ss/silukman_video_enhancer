@@ -24,7 +24,7 @@ class GitHubPresenceTests(unittest.TestCase):
 
         self.assertIn("img.shields.io/github/v/release/lukman-ss/silukman_video_enhancer", readme)
         self.assertIn("img.shields.io/github/downloads/lukman-ss/silukman_video_enhancer/total", readme)
-        self.assertIn("GitHub Packages", readme)
+        self.assertIn("Python Package", readme)
         self.assertIn("docs/assets/github-social-preview.svg", readme)
         self.assertIn('width="1280"', preview)
         self.assertIn('height="640"', preview)
@@ -51,9 +51,9 @@ class GitHubPresenceTests(unittest.TestCase):
         self.assertIn("Minor release", contributing)
         self.assertIn("Major release", contributing)
         self.assertIn("silukman-video-enhancer-vX.Y.Z-windows-x64.exe", packaging)
-        self.assertIn("https://pypi.pkg.github.com/lukman-ss/", publish)
+        self.assertIn("python-package-dist", publish)
         self.assertIn("python -m build", publish)
-        self.assertIn("twine upload", publish)
+        self.assertIn("gh release upload", publish)
 
     def test_issue_templates_and_security_policy_exist(self) -> None:
         issue_dir = ROOT / ".github" / "ISSUE_TEMPLATE"
