@@ -55,7 +55,27 @@ To run this application locally, you will need:
 
 ---
 
-## Installation
+## Running Standalone Installers
+
+If you download the pre-built standalone binaries (`.exe` or `.dmg`) from the **GitHub Releases** tab, you may encounter system security warnings because they are not digitally signed:
+
+### macOS (Gatekeeper Bypass)
+1. **Move File**: Drag the executable file (`silukman-video-enhancer-desktop`) out of the mounted DMG disk and place it in your local **Downloads** or **Applications** folder.
+2. **Clear Quarantine Flag**: Open Terminal and run:
+   ```bash
+   xattr -cr ~/Downloads/silukman-video-enhancer-desktop
+   ```
+   *(If placed in Applications, use `/Applications/silukman-video-enhancer-desktop` instead)*.
+3. Open the application by double-clicking it normally.
+
+### Windows (SmartScreen Bypass)
+1. Double-click the downloaded `.exe` installer.
+2. On the Windows Defender SmartScreen window, click **"More info"**.
+3. Click **"Run anyway"** to launch.
+
+---
+
+## Installation from Source
 
 ```bash
 # Clone the repository
@@ -95,6 +115,10 @@ python -m app desktop
 # or
 python -m ui.desktop
 ```
+
+### Desktop Interface
+
+![silukman_video_enhancer Desktop UI](docs/assets/desktop-ui-screenshot.png)
 
 ---
 

@@ -257,7 +257,7 @@ def _stream_frames(
         if writer.stdin and not writer.stdin.closed:
             try:
                 writer.stdin.close()
-            except OSError:
+            except (OSError, ValueError):
                 pass
         reader_stdout = reader.stdout
         if reader_stdout:
