@@ -70,15 +70,18 @@ class DbCompactor:
     def ensure_schema(self) -> None:
         """Create a minimal jobs table if it doesn't exist."""
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        with sqlite3.connect(self.db_path) as conn:
+        conn = sqlite3.connect(self.db_path)
+        try:
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS jobs (
                     id          TEXT PRIMARY KEY,
                     status      TEXT NOT NULL DEFAULT 'queued',
-                    updated_at  REAL NOT NULL DEFAULT (unixepoch())
+                    updated_at  REAL NOT NULL DEFAULT (cast(strftime('%s', 'now') as real))
                 )
             """)
             conn.commit()
+        finally:
+            conn.close()
 
     # ------------------------------------------------------------------
     # Pruning
@@ -115,10 +118,13 @@ class DbCompactor:
                 f"WHERE status NOT IN ({placeholders}) "
                 f"AND updated_at < ?"
             )
-            with sqlite3.connect(self.db_path) as conn:
+            conn = sqlite3.connect(self.db_path)
+            try:
                 cur = conn.execute(sql, (*keep_statuses, cutoff))
                 result.rows_deleted = cur.rowcount
                 conn.commit()
+            finally:
+                conn.close()
 
             if run_vacuum:
                 # VACUUM must run outside a transaction
@@ -140,25 +146,31 @@ class DbCompactor:
     def row_count(self, status: Optional[str] = None) -> int:
         """Return total row count, optionally filtered by status."""
         self.ensure_schema()
-        with sqlite3.connect(self.db_path) as conn:
+        conn = sqlite3.connect(self.db_path)
+        try:
             if status:
                 row = conn.execute(
                     "SELECT COUNT(*) FROM jobs WHERE status = ?", (status,)
                 ).fetchone()
             else:
                 row = conn.execute("SELECT COUNT(*) FROM jobs").fetchone()
-        return row[0]
+            return row[0]
+        finally:
+            conn.close()
 
     def insert_job(self, job_id: str, status: str, age_days: float = 0.0) -> None:
         """Helper for tests — insert a job row with a synthetic timestamp."""
         self.ensure_schema()
         updated_at = time.time() - age_days * 86400
-        with sqlite3.connect(self.db_path) as conn:
+        conn = sqlite3.connect(self.db_path)
+        try:
             conn.execute(
                 "INSERT OR REPLACE INTO jobs (id, status, updated_at) VALUES (?,?,?)",
                 (job_id, status, updated_at),
             )
             conn.commit()
+        finally:
+            conn.close()
 
 
 # ---------------------------------------------------------------------------

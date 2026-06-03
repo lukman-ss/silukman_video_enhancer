@@ -47,11 +47,14 @@ class TestDbCompactor(unittest.TestCase):
         self.compactor.ensure_schema()
         self.assertTrue(self.db_path.exists())
         
-        with sqlite3.connect(self.db_path) as conn:
+        conn = sqlite3.connect(self.db_path)
+        try:
             cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='jobs'")
             row = cursor.fetchone()
             self.assertIsNotNone(row)
             self.assertEqual(row[0], "jobs")
+        finally:
+            conn.close()
 
     def test_insert_and_row_count(self):
         self.assertEqual(self.compactor.row_count(), 0)
