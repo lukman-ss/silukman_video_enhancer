@@ -255,9 +255,10 @@ class RestApiClient:
             return json.loads(response.read().decode("utf-8"))
 
     def _headers(self) -> dict[str, str]:
+        headers = {"Connection": "close"}
         if self.token:
-            return {"Authorization": f"Bearer {self.token}"}
-        return {}
+            headers["Authorization"] = f"Bearer {self.token}"
+        return headers
 
 
 def api_health() -> dict[str, str]:
