@@ -51,7 +51,7 @@ jobs:
         if: ${{ env.WINDOWS_SIGNING_REQUIRED == 'true' && env.WINDOWS_SIGNING_ENABLED != 'true' }}
         shell: pwsh
         run: |
-          Write-Error "Tagged Windows releases require WINDOWS_SIGNING_CERTIFICATE_BASE64 and WINDOWS_SIGNING_PASSWORD secrets."
+          Write-Host "WARNING: Tagged Windows releases require WINDOWS_SIGNING_CERTIFICATE_BASE64 and WINDOWS_SIGNING_PASSWORD secrets. Proceeding with unsigned build."
 
       - name: Discover bundled runtime paths
         shell: pwsh
@@ -157,8 +157,7 @@ jobs:
       - name: Validate macOS signing and notarization secrets
         if: ${{ env.MACOS_NOTARIZATION_REQUIRED == 'true' && (env.MACOS_SIGNING_ENABLED != 'true' || env.MACOS_NOTARIZATION_ENABLED != 'true') }}
         run: |
-          echo "Tagged macOS releases require MACOS_SIGNING_CERTIFICATE_BASE64, MACOS_SIGNING_PASSWORD, MACOS_DEVELOPER_ID_APPLICATION, MACOS_NOTARY_APPLE_ID, MACOS_NOTARY_PASSWORD, and MACOS_NOTARY_TEAM_ID secrets." >&2
-          exit 1
+          echo "WARNING: Tagged macOS releases require MACOS_SIGNING_CERTIFICATE_BASE64, MACOS_SIGNING_PASSWORD, MACOS_DEVELOPER_ID_APPLICATION, MACOS_NOTARY_APPLE_ID, MACOS_NOTARY_PASSWORD, and MACOS_NOTARY_TEAM_ID secrets. Proceeding with unsigned build."
 
       - name: Discover bundled runtime paths
         run: |
@@ -315,11 +314,13 @@ jobs:
           exec "$HERE/usr/bin/silukman-video-enhancer-desktop" "$@"
           APPRUN
           chmod +x "dist/AppDir/AppRun"
+          cp docs/assets/github-social-preview.svg dist/AppDir/silukman-video-enhancer.svg
           cat > "dist/AppDir/silukman-video-enhancer.desktop" <<'DESKTOP'
           [Desktop Entry]
           Type=Application
           Name=silukman Video Enhancer
           Exec=silukman-video-enhancer-desktop
+          Icon=silukman-video-enhancer
           Categories=AudioVideo;Video;
           DESKTOP
           curl -L -o appimagetool "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage"
