@@ -1,6 +1,6 @@
 # silukman_video_enhancer
 
-![silukman_video_enhancer social preview](docs/assets/github-social-preview.svg)
+![silukman_video_enhancer hero](docs/assets/hero.png)
 
 [![Project Status: Active](https://img.shields.io/badge/status-active-brightgreen.svg)](#roadmap)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)

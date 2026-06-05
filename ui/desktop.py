@@ -19,7 +19,7 @@ from ui.desktop_state import DesktopSettings, DesktopSettingsStore
 
 try:
     from PySide6.QtCore import QObject, QThread, Qt, QUrl, Signal
-    from PySide6.QtGui import QDesktopServices
+    from PySide6.QtGui import QDesktopServices, QIcon
     from PySide6.QtWidgets import (
         QAbstractItemView,
         QApplication,
@@ -158,6 +158,9 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("silukman_video_enhancer")
         self.resize(1100, 720)
+        icon_path = Path(__file__).parent.parent / "docs" / "assets" / "icon.png"
+        if icon_path.exists():
+            self.setWindowIcon(QIcon(str(icon_path)))
         self._thread: QThread | None = None
         self._worker: EnhancementWorker | BatchEnhancementWorker | None = None
         self._cancel_token: BatchCancelToken | None = None

@@ -39,6 +39,9 @@ def pyinstaller_command(
     ]
     if onefile:
         command.append("--onefile")
+    icon_path = Path("docs/assets/icon.png")
+    if icon_path.exists():
+        command.extend(["--icon", str(icon_path)])
     if ffmpeg_binary is not None:
         command.extend(["--add-binary", f"{ffmpeg_binary}:bin"])
     if qt_runtime_dir is not None:
